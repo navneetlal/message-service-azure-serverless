@@ -113,7 +113,7 @@
     },
     {
       "type": "Microsoft.DocumentDB/databaseAccounts/apis/databases",
-      "name": "[concat(variables('databaseAccountName'), '/mongodb/', 'messageservice', '/', 'messages')]",
+      "name": "[concat(variables('databaseAccountName'), 'mongodb', 'messageservice', 'messages')]",
       "apiVersion": "2016-03-31",
       "dependsOn": [
         "[resourceId('Microsoft.DocumentDB/databaseAccounts/', variables('databaseAccountName'))]"
