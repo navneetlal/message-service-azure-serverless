@@ -1,7 +1,7 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions";
 import { MongoClient } from 'mongodb';
 
-const uri = process.env["MongodbConnectionUrl"] || 'mongodb+srv://OMITTED.mongodb.net/test';
+const uri = process.env["MongodbConnectionString"] || 'mongodb+srv://OMITTED.mongodb.net/test';
 
 const SendMessage: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
     context.log('HTTP trigger function processed a request.');

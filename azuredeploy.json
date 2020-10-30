@@ -10,11 +10,23 @@
     },
     "branch": {
       "type": "string"
+    },
+    "databaseName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name for the Mongo DB database"
+      }
+    },
+    "collectionName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name for the first Mongo DB collection"
+      }
     }
   },
   "variables": {
     "storageName": "[concat('messages', uniqueString(resourceGroup().id))]",
-    "databaseAccountName": "[concat('messagesAccount', uniqueString(resourceGroup().id))]"
+    "databaseAccountName": "[concat('messagesaccount', uniqueString(resourceGroup().id))]"
   },
   "resources": [
     {
@@ -25,22 +37,24 @@
       "kind": "functionapp",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
-        "[resourceId('microsoft.insights/components/', parameters('siteName'))]"
+        "[resourceId('microsoft.insights/components/', parameters('siteName'))]",
+        "[resourceId('Microsoft.Insights/components', parameters('siteName'))]",
+        "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('databaseAccountName'))]"
       ],
       "properties": {
         "siteConfig": {
           "appSettings": [
             {
               "name": "AzureWebJobsDashboard",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys('storageAccountID','2019-06-01').keys[0].value)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')),'2019-06-01').keys[0].value)]"
             },
             {
               "name": "AzureWebJobsStorage",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys('storageAccountID','2019-06-01').keys[0].value)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')),'2019-06-01').keys[0].value)]"
             },
             {
               "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys('storageAccountID','2019-06-01').keys[0].value)]"
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')),'2019-06-01').keys[0].value)]"
             },
             {
               "name": "WEBSITE_CONTENTSHARE",
@@ -52,7 +66,7 @@
             },
             {
               "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-              "value": "[reference(resourceId('microsoft.insights/components/', 'applicationInsightsName'), '2015-05-01').InstrumentationKey]"
+              "value": "[reference(resourceId('microsoft.insights/components/', parameters('siteName')), '2018-05-01-preview').InstrumentationKey]"
             },
             {
               "name": "FUNCTIONS_WORKER_RUNTIME",
@@ -61,6 +75,10 @@
             {
               "name": "WEBSITE_NODE_DEFAULT_VERSION",
               "value": "10.14.1"
+            },
+            {
+              "name": "MongodbConnectionString",
+              "value": "[listConnectionStrings(resourceId('Microsoft.DocumentDb/databaseAccounts', variables('databaseAccountName')), '2019-12-12').connectionStrings[0].connectionString]"
             }
           ]
         }
@@ -86,40 +104,60 @@
       "type": "Microsoft.DocumentDB/databaseAccounts",
       "apiVersion": "2019-12-12",
       "location": "[resourceGroup().location]",
-      "tags": {
-      },
       "kind": "MongoDB",
       "properties": {
-        "consistencyPolicy": {
-          "defaultConsistencyLevel": "Eventual",
-          "maxStalenessPrefix": 1,
-          "maxIntervalInSeconds": 5
-        },
         "locations": [
           {
             "locationName": "[resourceGroup().location]",
             "failoverPriority": 0
           }
         ],
-        "databaseAccountOfferType": "Standard",
-        "ipRangeFilter": "ipRangeFilter",
-        "enableAutomaticFailover": true,
-        "capabilities": [
-          {
-            "name": "EnableTable"
-          }
-        ]
+        "databaseAccountOfferType": "Standard"
       },
       "resources": [
         {
-          "type": "databases",
-          "name": "[concat(variables('databaseAccountName'), 'mongodb', 'messageservice', 'messages')]",
-          "apiVersion": "2016-03-31",
+          "type": "Microsoft.DocumentDB/databaseAccounts/mongodbDatabases",
+          "name": "[concat(variables('databaseAccountName'), '/', parameters('databaseName'))]",
+          "apiVersion": "2020-03-01",
+          "dependsOn": [ "[resourceId('Microsoft.DocumentDB/databaseAccounts/', variables('databaseAccountName'))]" ],
+          "properties": {
+            "resource": {
+              "id": "[parameters('databaseName')]"
+            },
+            "options": { "throughput": 400 }
+          }
+        },
+        {
+          "type": "Microsoft.DocumentDb/databaseAccounts/mongodbDatabases/collections",
+          "name": "[concat(variables('databaseAccountName'), '/', parameters('databaseName'), '/', parameters('collectionName'))]",
+          "apiVersion": "2020-03-01",
           "dependsOn": [
-            "[resourceId('Microsoft.DocumentDB/databaseAccounts/', variables('databaseAccountName'))]"
-          ]
+            "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('databaseAccountName'))]",
+            "[resourceId('Microsoft.DocumentDB/databaseAccounts/mongodbDatabases', variables('databaseAccountName'), parameters('databaseName'))]" 
+            ],
+          "properties": {
+            "resource": {
+              "id": "[parameters('collectionName')]",
+              "shardKey": { "user_id": "Hash" },
+              "dependsOn": [
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts/mongodbDatabases', variables('databaseAccountName'), parameters('databaseName'), parameters('collectionName'))]" 
+              ],
+              "indexes": [
+                {
+                  "key": { "keys": [ "user_id", "user_address" ] },
+                  "options": { "unique": "true" }
+                },
+                {
+                  "key": { "keys": [ "_ts" ] },
+                  "options": { "expireAfterSeconds": "2629746" }
+                }
+              ],
+              "options": {
+                "If-Match": "<ETag>"
+              }
+            }
+          }
         }
-
       ]
     },
     {
