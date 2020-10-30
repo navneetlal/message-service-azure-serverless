@@ -88,7 +88,7 @@
       "location": "[resourceGroup().location]",
       "tags": {
       },
-      "kind": "GlobalDocumentDB",
+      "kind": "MongoDB",
       "properties": {
         "consistencyPolicy": {
           "defaultConsistencyLevel": "Eventual",
@@ -109,23 +109,18 @@
             "name": "EnableTable"
           }
         ]
-      }
-    },
-    {
-      "type": "Microsoft.DocumentDB/databaseAccounts/apis/databases",
-      "name": "[concat(variables('databaseAccountName'), 'mongodb', 'messageservice', 'messages')]",
-      "apiVersion": "2016-03-31",
-      "dependsOn": [
-        "[resourceId('Microsoft.DocumentDB/databaseAccounts/', variables('databaseAccountName'))]"
-      ],
-      "properties": {
-        "resource": {
-          "throughput": 400,
-          "id": "database-id"
-        },
-        "options": {
+      },
+      "resources": [
+        {
+          "type": "databases",
+          "name": "[concat(variables('databaseAccountName'), 'mongodb', 'messageservice', 'messages')]",
+          "apiVersion": "2016-03-31",
+          "dependsOn": [
+            "[resourceId('Microsoft.DocumentDB/databaseAccounts/', variables('databaseAccountName'))]"
+          ]
         }
-      }
+
+      ]
     },
     {
       "name": "[variables('storageName')]",
