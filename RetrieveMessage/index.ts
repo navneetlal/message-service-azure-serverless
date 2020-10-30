@@ -1,17 +1,36 @@
-import { AzureFunction, Context, HttpRequest } from "@azure/functions"
+import { AzureFunction, Context, HttpRequest } from "@azure/functions";
+import { MongoClient } from 'mongodb';
 
-const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+const uri = process.env["MongodbConnectionUrl"] || 'mongodb+srv://OMITTED.mongodb.net/test';
+
+const RetrieveMessage: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
     context.log('HTTP trigger function processed a request.');
     const name = (req.query.name || (req.body && req.body.name));
-    const responseMessage = name
-        ? "Hello, " + name + ". This HTTP triggered function executed successfully."
-        : "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response.";
 
-    context.res = {
-        // status: 200, /* Defaults to 200 */
-        body: responseMessage
-    };
+    MongoClient.connect(uri, function(error, client) {
+        if (error) {
+          context.log('Failed to connect');
+          context.res = { status: 500, body: { message: "Internal Server Error", statusCode: 500 } }
+          return context.done();
+        }
+        context.log('Connected');
+    
+        client.db('test').collection('tests').find({ name }).toArray(function(error, docs) {
+          if (error) {
+            context.log('Error running query');
+            context.res = { status: 500, body: { message: "Internal Server Error", statusCode: 500 } }
+            return context.done();
+          }
+    
+          context.log('Success!');
+          context.res = {
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ res: docs })
+          };
+          context.done();     
+        });
+      });
 
 };
 
-export default httpTrigger;
+export default RetrieveMessage;
