@@ -3,13 +3,22 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "siteName": {
-      "type": "string"
+      "type": "string",
+      "metadata": {
+        "description": "Site name for the application. Must be unique"
+      }
     },
     "repoUrl": {
-      "type": "string"
+      "type": "string",
+      "metadata": {
+        "description": "Repository url of the source code"
+      }
     },
     "branch": {
-      "type": "string"
+      "type": "string",
+        "metadata": {
+        "description": "Branch name in your github repository"
+      }
     },
     "databaseName": {
       "type": "string",
@@ -140,7 +149,7 @@
               "id": "[parameters('collectionName')]",
               "shardKey": { "user_id": "Hash" },
               "dependsOn": [
-                "[resourceId('Microsoft.DocumentDB/databaseAccounts/mongodbDatabases', variables('databaseAccountName'), parameters('databaseName'), parameters('collectionName'))]" 
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts/mongodbDatabases', variables('databaseAccountName'), parameters('databaseName'))]" 
               ],
               "indexes": [
                 {
