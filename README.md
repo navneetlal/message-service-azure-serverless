@@ -52,9 +52,11 @@ Functions in <function-app-name>:
 You will provided with the two invoke url for the functions
 
 ## End Result and Testing
-```md
-[POST] https://<function-app-name>.azurewebsites.net/api/sendmessage?name=David
-body = { message: "Hi David, How are you?" }
 
-[GET] https://<function-app-name>.azurewebsites.net/api/retrievemessage?name=David
+```bash
+$ curl -X POST -H "Content-Type: application/json" \
+    -d '{"message": "Hi David, How are you?"}' \
+    https://<function-app-name>.azurewebsites.net/api/sendmessage?name=David
+
+$ curl -X GET https://<function-app-name>.azurewebsites.net/api/retrievemessage?name=David
 ```
