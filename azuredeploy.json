@@ -8,18 +8,18 @@
         "description": "Site name for the application. Must be unique"
       }
     },
-    "repoUrl": {
-      "type": "string",
-      "metadata": {
-        "description": "Repository url of the source code"
-      }
-    },
-    "branch": {
-      "type": "string",
-        "metadata": {
-        "description": "Branch name in your github repository"
-      }
-    },
+    // "repoUrl": {
+    //   "type": "string",
+    //   "metadata": {
+    //     "description": "Repository url of the source code"
+    //   }
+    // },
+    // "branch": {
+    //   "type": "string",
+    //     "metadata": {
+    //     "description": "Branch name in your github repository"
+    //   }
+    // },
     "databaseName": {
       "type": "string",
       "metadata": {
@@ -88,25 +88,33 @@
             {
               "name": "MongodbConnectionString",
               "value": "[listConnectionStrings(resourceId('Microsoft.DocumentDb/databaseAccounts', variables('databaseAccountName')), '2019-12-12').connectionStrings[0].connectionString]"
+            },
+            {
+              "name": "MongodbDatabaseName",
+              "value": "[parameters('databaseName')]"
+            },
+            {
+              "name": "MongodbCollectionName",
+              "value": "[parameters('collectionName')]"
             }
           ]
         }
-      },
-      "resources": [
-        {
-          "apiVersion": "2018-11-01",
-          "name": "web",
-          "type": "sourcecontrols",
-          "dependsOn": [
-            "[resourceId('Microsoft.Web/Sites', parameters('siteName'))]"
-          ],
-          "properties": {
-            "RepoUrl": "[parameters('repoUrl')]",
-            "branch": "[parameters('branch')]",
-            "IsManualIntegration": true
-          }
-        }
-      ]
+      }
+      // "resources": [
+      //   {
+      //     "apiVersion": "2018-11-01",
+      //     "name": "web",
+      //     "type": "sourcecontrols",
+      //     "dependsOn": [
+      //       "[resourceId('Microsoft.Web/Sites', parameters('siteName'))]"
+      //     ],
+      //     "properties": {
+      //       "RepoUrl": "[parameters('repoUrl')]",
+      //       "branch": "[parameters('branch')]",
+      //       "IsManualIntegration": true
+      //     }
+      //   }
+      // ]
     },
     {
       "name": "[variables('databaseAccountName')]",
@@ -147,23 +155,23 @@
           "properties": {
             "resource": {
               "id": "[parameters('collectionName')]",
-              "shardKey": { "user_id": "Hash" },
+              "shardKey": { "name": "Hash" },
               "dependsOn": [
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts/mongodbDatabases', variables('databaseAccountName'), parameters('databaseName'))]" 
               ],
               "indexes": [
-                {
-                  "key": { "keys": [ "user_id", "user_address" ] },
-                  "options": { "unique": "true" }
-                },
-                {
-                  "key": { "keys": [ "_ts" ] },
-                  "options": { "expireAfterSeconds": "2629746" }
-                }
-              ],
-              "options": {
-                "If-Match": "<ETag>"
-              }
+                  {
+                     "key": {
+                        "keys": [ "_id" ]
+                     },
+                     "options": {
+                        "unique": true
+                     }
+                  }
+               ],
+               "options": {
+                  "If-Match": "<ETag>"
+               }
             }
           }
         }

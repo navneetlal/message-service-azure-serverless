@@ -1,37 +1,50 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions";
 import { MongoClient } from 'mongodb';
 
-const uri = process.env["MongodbConnectionString"] || 'mongodb+srv://OMITTED.mongodb.net/test';
+const uri = process.env["MongodbConnectionString"] || 'mongodb://127.0.0.1:27017';
 
-const SendMessage: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
+const SendMessage: AzureFunction = function (context: Context, req: HttpRequest) {
     context.log('HTTP trigger function processed a request.');
     const name = (req.query.name || (req.body && req.body.name));
+
+    const dbName = process.env.MongodbDatabaseName;
+    const collectionName = process.env.MongodbCollectionName;
+
+    console.log("dbName: ",dbName);
+    console.log("collectionName: ", collectionName);
 
     MongoClient.connect(uri, function(error, client) {
         if (error) {
           context.log('Failed to connect');
-          context.res = { status: 500, body: { message: "Internal Server Error", statusCode: 500 } }
-          return context.done();
+          const response = { status: 500, body: { message: "Internal Server Error", statusCode: 500 } }
+          context.done(null, response);
         }
         context.log('Connected');
 
         const messageBody = { ...req.body, name }
     
-        client.db('test').collection('tests').insertOne(messageBody ,function(error, docs) {
+        client.db(dbName).collection(collectionName).insertOne(messageBody ,function(error, docs) {
           if (error) {
             context.log('Error running query');
-            context.res = { status: 500, body: { message: "Internal Server Error", statusCode: 500 } }
-            return context.done();
+            const response = { status: 500, body: { message: "Internal Server Error", statusCode: 500 } }
+            context.done(null, response);
           }
     
           context.log('Success!');
-          context.res = {
+          const response = {
+            status: 201,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ res: docs })
+            body: messageBody
           };
-          context.done();     
+          context.done(null, response);
         });
       });
+      // const response = {
+      //   status: 201,
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: "Navneet"
+      // };
+      // context.done(null, response);
 
 };
 
